@@ -3,15 +3,18 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "KY — LinkedIn Profile Audit. Phase 1 interactive demo (B2C).",
+  "description": "KY \u2014 LinkedIn Profile Audit. Phase 1 interactive demo (B2C).",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "test": "node scripts/run-tests.mjs",
     "pages": "npm run build && node scripts/sync-pages.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "npm run test && npm run build"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.8",
+    "@types/node": "^26.5.1",
     "tailwindcss": "^4.1.8",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"

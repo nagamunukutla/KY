@@ -3,6 +3,7 @@ import { scoreDial, scoreColor } from '../components/charts';
 import { CURATED } from '../data/profiles';
 import { CHECKPOINTS, SECTION_DEFS, computeOverall } from '../data/sections';
 import { escapeHtml, toast } from '../lib/dom';
+import { addWaitlist, listWaitlist } from '../lib/store';
 
 export function landingHtml(): string {
   return `${navHtml()}
@@ -31,11 +32,14 @@ function navHtml(): string {
       <span class="text-lg font-extrabold tracking-tight text-white">KY</span>
       <span class="mt-1 hidden text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:inline">LinkedIn Profile Audit</span>
     </a>
-    <nav class="hidden items-center gap-7 text-sm font-medium text-slate-300 md:flex">
+    <nav class="hidden items-center gap-6 text-sm font-medium text-slate-300 md:flex">
       <a class="transition hover:text-white" href="#how">How it works</a>
       <a class="transition hover:text-white" href="#samples">Sample reports</a>
       <a class="transition hover:text-white" href="#pricing">Pricing</a>
       <a class="transition hover:text-white" href="#faq">FAQ</a>
+      <button type="button" data-open-history class="inline-flex items-center gap-1.5 transition hover:text-white">
+        ${icon('history', 'h-4 w-4')} History
+      </button>
     </nav>
     <a href="#audit" class="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark">
       Audit my profile ${icon('arrowRight', 'h-4 w-4')}
@@ -97,14 +101,14 @@ function heroHtml(): string {
   <div class="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pb-24 pt-16 sm:pt-20 lg:grid-cols-2 lg:pt-24">
     <div class="animate-rise">
       <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-slate-200">
-        ${icon('sparkles', 'h-3.5 w-3.5 text-sky-400')} Phase 1 demo &middot; Free &middot; No sign-up
+        ${icon('sparkles', 'h-3.5 w-3.5 text-sky-400')} Phase 2 &middot; Real analysis &middot; Free &middot; No sign-up
       </span>
       <h1 class="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl">
         Your LinkedIn profile,<br/>
         <span class="bg-gradient-to-r from-sky-400 to-emerald-400 bg-clip-text text-transparent">scored in 60 seconds.</span>
       </h1>
       <p class="mt-5 max-w-xl text-lg leading-relaxed text-slate-300">
-        KY audits your headline, About, experience, skills and activity across ${CHECKPOINTS}+ checkpoints, benchmarks you against your industry — and hands you the 3 fixes that matter most.
+        Paste your profile text and KY scores it for real — headline, About, bullets, skills and education across ${CHECKPOINTS}+ checkpoints. Then it rewrites your weakest sections and tracks your score over time.
       </p>
       <div class="mt-8 flex flex-wrap gap-3">
         <a href="#audit" class="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3.5 font-semibold text-white shadow-lg shadow-brand/30 transition hover:bg-brand-dark">
@@ -125,7 +129,7 @@ function heroHtml(): string {
         </div>
         <div>
           <dt class="text-2xl font-extrabold text-white">Free</dt>
-          <dd class="mt-1 text-xs text-slate-400">in Phase 1</dd>
+          <dd class="mt-1 text-xs text-slate-400">no sign-up</dd>
         </div>
       </dl>
     </div>
@@ -144,30 +148,95 @@ function sampleChip(slug: string, name: string, label: string, score: number): s
 </button>`;
 }
 
+function auditTab(id: string, label: string, hint: string): string {
+  return `<button type="button" data-tab="${id}" class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition">
+  <span class="block">${label}</span>
+  <span class="mt-0.5 block text-[11px] font-medium opacity-70">${hint}</span>
+</button>`;
+}
+
+function flagCheck(id: string, label: string): string {
+  return `<label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:border-brand/40 hover:bg-white">
+  <input type="checkbox" data-flag="${id}" class="h-3.5 w-3.5 accent-brand"/>
+  ${label}
+</label>`;
+}
+
 function auditHtml(): string {
   return `<section id="audit" class="bg-white py-20 sm:py-24">
-  <div class="mx-auto max-w-3xl animate-rise px-4 text-center">
-    <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Paste a profile. Get your report.</h2>
-    <p class="mt-3 text-lg text-slate-600">No login, no sign-up. In Phase 1 every audit runs on realistic sample data.</p>
-    <form id="audit-form" class="mt-8 flex flex-col gap-3 sm:flex-row" novalidate>
-      <label class="sr-only" for="profile-url">LinkedIn profile URL</label>
-      <div class="relative flex-1 text-left">
-        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">${icon('link', 'h-5 w-5')}</span>
-        <input id="profile-url" name="profile-url" type="text" inputmode="url" autocomplete="off"
-          placeholder="https://www.linkedin.com/in/your-profile"
-          class="w-full rounded-xl border border-slate-300 bg-white py-3.5 pl-12 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"/>
-      </div>
-      <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-dark">
-        ${icon('search', 'h-5 w-5')} Run free audit
-      </button>
-    </form>
-    <p id="audit-error" class="mt-3 hidden text-sm font-medium text-rose-600"></p>
-    <div class="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-      <span class="text-sm font-medium text-slate-500">Or try a sample:</span>
-      ${sampleChip('sarah-mitchell-marketing', 'Sarah Mitchell', 'Marketing', 56)}
-      ${sampleChip('michael-chen-swe', 'Michael Chen', 'Software', 79)}
+  <div class="mx-auto max-w-3xl animate-rise px-4">
+    <div class="text-center">
+      <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Paste a profile. Get your report.</h2>
+      <p class="mt-3 text-lg text-slate-600">No login, no LinkedIn password. Two ways in — pick one.</p>
     </div>
-    <p class="mt-4 text-xs text-slate-400">Any URL works in demo mode — results are sample-based, not your real data.</p>
+
+    <div class="mx-auto mt-8 flex max-w-lg gap-1 rounded-xl bg-slate-100 p-1">
+      ${auditTab('paste', 'Paste profile text', 'Real analysis')}
+      ${auditTab('url', 'Profile URL', 'Demo data')}
+    </div>
+
+    <div data-panel="paste" class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+      <p class="text-sm leading-relaxed text-slate-600">
+        KY scores the text you paste — your headline, About, bullets, skills and education. Nothing is uploaded: it runs
+        in your browser and never contacts LinkedIn.
+      </p>
+      <details class="mt-3 rounded-lg bg-slate-50 px-3 py-2">
+        <summary class="cursor-pointer text-sm font-semibold text-brand">How do I copy my profile?</summary>
+        <ol class="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-600">
+          <li>Open your LinkedIn profile and press <kbd class="rounded border border-slate-300 bg-white px-1">Ctrl</kbd>+<kbd class="rounded border border-slate-300 bg-white px-1">A</kbd>, then <kbd class="rounded border border-slate-300 bg-white px-1">Ctrl</kbd>+<kbd class="rounded border border-slate-300 bg-white px-1">C</kbd>.</li>
+          <li>Or use <em>More → Save to PDF</em> and paste the text from the PDF.</li>
+          <li>Paste it below. Rough formatting is fine.</li>
+        </ol>
+      </details>
+      <form id="paste-form" class="mt-4" novalidate>
+        <label class="sr-only" for="profile-text">Your profile text</label>
+        <textarea id="profile-text" name="profile-text" rows="11" spellcheck="false"
+          placeholder="Alex Morgan&#10;Senior Product Manager | B2B SaaS | +38% activation&#10;&#10;About&#10;I'm a product manager with 9 years in B2B SaaS…&#10;&#10;Experience&#10;&#10;Senior Product Manager&#10;Acme Cloud&#10;Jan 2021 - Present&#10;• Led onboarding redesign that increased activation by 38%&#10;&#10;Skills&#10;Product Strategy, A/B Testing, SQL"
+          class="w-full rounded-xl border border-slate-300 bg-white p-4 font-mono text-xs leading-relaxed text-slate-800 transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"></textarea>
+
+        <p class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Things a text paste cannot see (optional)</p>
+        <div class="mt-2 grid gap-2 sm:grid-cols-2">
+          ${flagCheck('photo', 'I have a professional photo')}
+          ${flagCheck('banner', 'I have a custom banner')}
+          ${flagCheck('customUrl', 'I use a custom public URL')}
+          ${flagCheck('featured', 'Featured section is set up')}
+          ${flagCheck('active90', 'Posted or commented in the last 90 days')}
+        </div>
+
+        <p id="paste-error" class="mt-3 hidden text-sm font-medium text-rose-600"></p>
+        <button type="submit" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-dark">
+          ${icon('zap', 'h-5 w-5')} Run real audit
+        </button>
+        <p class="mt-3 flex items-start gap-1.5 text-xs text-slate-400">
+          ${icon('shield', 'h-3.5 w-3.5 mt-0.5 shrink-0')} Runs entirely in your browser. No account, no upload, no LinkedIn access.
+        </p>
+      </form>
+    </div>
+
+    <div data-panel="url" class="mt-6 hidden text-center">
+      <form id="audit-form" class="flex flex-col gap-3 sm:flex-row" novalidate>
+        <label class="sr-only" for="profile-url">LinkedIn profile URL</label>
+        <div class="relative flex-1 text-left">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">${icon('link', 'h-5 w-5')}</span>
+          <input id="profile-url" name="profile-url" type="text" inputmode="url" autocomplete="off"
+            placeholder="https://www.linkedin.com/in/your-profile"
+            class="w-full rounded-xl border border-slate-300 bg-white py-3.5 pl-12 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"/>
+        </div>
+        <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-dark">
+          ${icon('search', 'h-5 w-5')} Run demo audit
+        </button>
+      </form>
+      <p id="audit-error" class="mt-3 hidden text-sm font-medium text-rose-600"></p>
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+        <span class="text-sm font-medium text-slate-500">Or try a sample:</span>
+        ${sampleChip('sarah-mitchell-marketing', 'Sarah Mitchell', 'Marketing', 56)}
+        ${sampleChip('michael-chen-swe', 'Michael Chen', 'Software', 79)}
+      </div>
+      <p class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800 ring-1 ring-amber-200">
+        Demo mode scores <strong>sample</strong> data, not your profile — it exists so you can explore the full report
+        without pasting anything. For a real score, use <em>Paste profile text</em>.
+      </p>
+    </div>
   </div>
 </section>`;
 }
@@ -188,12 +257,12 @@ function howHtml(): string {
   <div class="mx-auto max-w-6xl px-4">
     <div class="mx-auto max-w-2xl text-center">
       <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">How it works</h2>
-      <p class="mt-3 text-lg text-slate-600">Three steps. No account, no LinkedIn login, nothing to install.</p>
+      <p class="mt-3 text-lg text-slate-600">Three steps. No account, no LinkedIn login, nothing to install, nothing leaves your browser.</p>
     </div>
     <div class="mt-12 grid gap-6 md:grid-cols-3">
-      ${stepCard('1', 'search', 'Paste the profile URL', 'Send KY any LinkedIn profile — yours, a candidate, a client. Public information only, and in Phase 1, demo data.')}
-      ${stepCard('2', 'zap', `Runs ${CHECKPOINTS}+ checkpoints`, 'Headline, About, experience, education, skills, activity, media and presence — each scored 0–100 against industry benchmarks.')}
-      ${stepCard('3', 'target', 'Get your 3 priority fixes', 'A benchmarked overall score, your keyword gaps, and the highest-impact changes — written so you can act on them today.')}
+      ${stepCard('1', 'paste', 'Paste your profile text', 'Copy your profile and paste it in. It is scored in your browser — no upload, no LinkedIn login, no credentials.')}
+      ${stepCard('2', 'zap', `Runs ${CHECKPOINTS}+ checkpoints`, 'Headline, About, experience, education, skills, activity, media and presence. Sections a text paste cannot prove are left out of the score instead of guessed.')}
+      ${stepCard('3', 'edit', 'Get rewrites, not just scores', 'A benchmarked score, your real keyword gaps, rewrites for your weakest sections, and a score history that shows whether the changes worked.')}
     </div>
   </div>
 </section>`;
@@ -274,18 +343,18 @@ function pricingHtml(): string {
   <div class="mx-auto max-w-6xl px-4">
     <div class="mx-auto max-w-2xl text-center">
       <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Pricing</h2>
-      <p class="mt-3 text-lg text-slate-600">Phase 1 is completely free. Pro lands in Phase 2 with an early-bird price.</p>
+      <p class="mt-3 text-lg text-slate-600">The audit is free. Pro adds the tracking layer — and it is unlocked here so you can try it before it is charged for.</p>
     </div>
     <div class="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
       <div class="rounded-2xl border-2 border-brand bg-white p-7 shadow-sm">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-bold text-slate-900">Free</h3>
-          <span class="rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">Phase 1</span>
+          <span class="rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">Live now</span>
         </div>
-        <p class="mt-2 text-sm text-slate-500">Everything you need to see exactly how your profile is read.</p>
+        <p class="mt-2 text-sm text-slate-500">A real audit of the profile text you paste.</p>
         <p class="mt-5 text-4xl font-extrabold text-slate-900">$0<span class="text-base font-medium text-slate-400"> / forever</span></p>
         <ul class="mt-6 space-y-3 text-sm text-slate-600">
-          ${['Full 8-section audit', 'Industry benchmark & percentile', 'Keyword gap analysis', '3 priority fixes, written for action', 'Shareable report (copy, PDF, LinkedIn post)'].map(
+          ${['Real 8-section analysis of your text', 'Industry benchmark & percentile', 'Keyword gaps found in your actual profile', 'Rewrites for your weakest sections', '1-page PDF report, resume-ready', 'Shareable LinkedIn post'].map(
             (f) => `<li class="flex items-start gap-2.5">${icon('check', 'h-4 w-4 shrink-0 text-emerald-600')} ${f}</li>`
           ).join('')}
         </ul>
@@ -294,16 +363,20 @@ function pricingHtml(): string {
       <div class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-bold text-slate-900">Pro</h3>
-          <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">Phase 2</span>
+          <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Phase 2.5 preview</span>
         </div>
-        <p class="mt-2 text-sm text-slate-500">For job hunters, founders and recruiters who audit regularly.</p>
+        <p class="mt-2 text-sm text-slate-500">For anyone who edits their profile more than once.</p>
         <p class="mt-5 text-4xl font-extrabold text-slate-900">$12<span class="text-base font-medium text-slate-400"> / month early bird</span></p>
         <ul class="mt-6 space-y-3 text-sm text-slate-600">
-          ${['Live audits of real public profiles', 'AI rewrites for every section', 'Weekly re-audits & score tracking', 'Keyword tracking with alerts', '1-page PDF report, resume-ready'].map(
+          ${['Score history & trend line', 'Keyword tracking with alerts on drops', 'What changed since your last audit', 'Unlimited saved audits in your browser', 'CSV & JSON export of every run'].map(
             (f) => `<li class="flex items-start gap-2.5">${icon('check', 'h-4 w-4 shrink-0 text-brand')} ${f}</li>`
           ).join('')}
         </ul>
-        <a href="#waitlist" class="mt-7 inline-flex w-full items-center justify-center rounded-xl border border-slate-300 py-3 font-semibold text-slate-700 transition hover:border-brand hover:text-brand">Join the waitlist</a>
+        <button type="button" data-open-plan class="mt-7 inline-flex w-full items-center justify-center rounded-xl border border-slate-300 py-3 font-semibold text-slate-700 transition hover:border-brand hover:text-brand">Try Pro features</button>
+        <p class="mt-3 text-xs leading-relaxed text-slate-400">
+          Billing is not connected in this build — Pro features are unlocked so you can evaluate them. Your data stays in
+          your browser.
+        </p>
       </div>
     </div>
   </div>
@@ -311,16 +384,23 @@ function pricingHtml(): string {
 }
 
 function waitlistHtml(): string {
+  const saved = listWaitlist();
   return `<section id="waitlist" class="bg-ink py-16 text-white sm:py-20">
   <div class="mx-auto max-w-2xl px-4 text-center">
-    <h2 class="text-3xl font-extrabold tracking-tight">Be first when live audits ship</h2>
-    <p class="mt-3 text-lg text-slate-300">Phase 2 adds real profile analysis, AI rewrites and weekly tracking. Waitlist members get early access and 3 months free.</p>
+    <h2 class="text-3xl font-extrabold tracking-tight">Get the Pro launch</h2>
+    <p class="mt-3 text-lg text-slate-300">
+      Phase 2 is live. Pro — hosted accounts, weekly re-audits and Stripe billing — is next. Waitlist members get early
+      access and 3 months free.
+    </p>
     <form id="waitlist-form" class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" novalidate>
       <label class="sr-only" for="waitlist-email">Email address</label>
       <input id="waitlist-email" type="email" placeholder="you@example.com"
         class="w-full flex-1 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30"/>
       <button type="submit" class="rounded-xl bg-sky-500 px-6 py-3 font-semibold text-ink transition hover:bg-sky-400">Join waitlist</button>
     </form>
+    <p class="mt-4 text-xs text-slate-500">
+      Saved to this browser only (<span data-waitlist-count>${saved.length}</span> so far) — there is no server to send it to yet.
+    </p>
   </div>
 </section>`;
 }
@@ -344,7 +424,7 @@ function faqHtml(): string {
     <div class="mt-10 space-y-4">
       ${faqItem(
         'Is this using my real profile data?',
-        'Not yet. Phase 1 is a demonstration build: every audit runs on realistic, sample-based data so you can explore the full experience end-to-end. Live analysis of public profiles arrives in Phase 2.'
+        'It uses exactly what you paste, and nothing else. KY runs in your browser: it never contacts LinkedIn, never asks for your password and never uploads your text. Sections a text paste cannot prove — photo, banner, posting cadence — are excluded from the score rather than guessed, unless you tick the boxes that confirm them.'
       )}
       ${faqItem(
         'How is the score calculated?',
@@ -355,12 +435,16 @@ function faqHtml(): string {
         'No. KY is an independent, unofficial tool. We never ask for your LinkedIn credentials, and Phase 1 reads no real data at all.'
       )}
       ${faqItem(
-        'When does Phase 2 ship?',
-        'Phase 2 adds live audits of public profiles, AI rewrites for every section, keyword tracking with alerts, and 1-page PDF reports. Waitlist members get early access and 3 months free.'
+        'Where does my data go?',
+        'Nowhere. Audits, tracked keywords and your saved history live in your browser\'s local storage. Clearing your browser data clears them, and you can export everything as JSON or CSV from the History page first.'
       )}
       ${faqItem(
-        'What is Phase 1 for?',
-        'Showing the product, validating the flow and gathering feedback: a shareable demo you can try in 60 seconds, without an account. That is exactly what you are using right now.'
+        'Are the rewrites written by AI?',
+        'They are template rewrites assembled from facts found in your own text — your role, your numbers, your keywords. That is deliberate: no API key, no network call, and nothing invented. Anything KY cannot know is left as a [bracketed placeholder] for you to fill in.'
+      )}
+      ${faqItem(
+        'What is Phase 2.5?',
+        'The tracking layer between the audit and the team features: score history with a trend line, keyword tracking with alerts when coverage drops, a "what changed since last audit" diff, and export. All of it is in this build, running locally.'
       )}
     </div>
   </div>
@@ -376,33 +460,99 @@ function footerHtml(): string {
     </div>
     <p class="max-w-md text-sm">LinkedIn profile intelligence for job hunters, founders and the people hiring them.</p>
     <p class="max-w-md text-xs text-slate-500">
-      Phase 1 demo — not affiliated with LinkedIn Corporation. Demo data is illustrative and no real profile data is read.
+      Not affiliated with LinkedIn Corporation. Analysis runs in your browser on text you paste; nothing is uploaded and
+      no LinkedIn data is fetched. The URL tab is labelled demo mode and scores sample data.
     </p>
     <p class="text-xs text-slate-600">© 2026 KY</p>
   </div>
 </footer>`;
 }
 
+export interface LandingHandlers {
+  onAudit: (raw: string) => void;
+  onPaste: (text: string, flags: Record<string, boolean>) => void;
+  onHistory: () => void;
+  onOpenPlan: () => void;
+}
+
 /** Attach all landing-page handlers. */
-export function wireLanding(root: HTMLElement, onAudit: (raw: string) => void): void {
+export function wireLanding(root: HTMLElement, h: LandingHandlers): void {
+  wireTabs(root);
+  wirePasteForm(root, h.onPaste);
+  wireUrlForm(root, h.onAudit);
+  wireSamples(root, h.onAudit);
+  wireWaitlist(root);
+
+  root.querySelector<HTMLElement>('[data-open-history]')?.addEventListener('click', h.onHistory);
+  root.querySelector<HTMLElement>('[data-open-plan]')?.addEventListener('click', h.onOpenPlan);
+}
+
+function wireTabs(root: HTMLElement): void {
+  const tabs = Array.from(root.querySelectorAll<HTMLElement>('[data-tab]'));
+  const panels = Array.from(root.querySelectorAll<HTMLElement>('[data-panel]'));
+
+  const select = (id: string): void => {
+    tabs.forEach((t) => {
+      const on = t.dataset.tab === id;
+      t.classList.toggle('bg-white', on);
+      t.classList.toggle('text-brand', on);
+      t.classList.toggle('shadow-sm', on);
+      t.classList.toggle('text-slate-500', !on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    panels.forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== id));
+  };
+
+  tabs.forEach((t) => t.addEventListener('click', () => select(t.dataset.tab ?? 'paste')));
+  select('paste');
+}
+
+function wirePasteForm(root: HTMLElement, onPaste: (text: string, flags: Record<string, boolean>) => void): void {
+  const form = root.querySelector<HTMLFormElement>('#paste-form');
+  const area = root.querySelector<HTMLTextAreaElement>('#profile-text');
+  const err = root.querySelector<HTMLElement>('#paste-error');
+  if (!form || !area || !err) return;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = area.value.trim();
+    if (text.length < 80) {
+      err.textContent = 'Paste a bit more of your profile first — 80 characters is not enough to score.';
+      err.classList.remove('hidden');
+      area.focus();
+      return;
+    }
+    err.classList.add('hidden');
+    const flags: Record<string, boolean> = {};
+    root.querySelectorAll<HTMLInputElement>('[data-flag]').forEach((cb) => {
+      if (cb.dataset.flag) flags[cb.dataset.flag] = cb.checked;
+    });
+    onPaste(text, flags);
+  });
+}
+
+function wireUrlForm(root: HTMLElement, onAudit: (raw: string) => void): void {
   const form = root.querySelector<HTMLFormElement>('#audit-form');
   const input = root.querySelector<HTMLInputElement>('#profile-url');
   const err = root.querySelector<HTMLElement>('#audit-error');
+  if (!form || !input || !err) return;
 
-  if (form && input && err) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const v = input.value.trim();
-      if (!v) {
-        err.textContent = 'Paste a LinkedIn profile URL first.';
-        err.classList.remove('hidden');
-        input.focus();
-        return;
-      }
-      err.classList.add('hidden');
-      onAudit(v);
-    });
-  }
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = input.value.trim();
+    if (!v) {
+      err.textContent = 'Paste a LinkedIn profile URL first.';
+      err.classList.remove('hidden');
+      input.focus();
+      return;
+    }
+    err.classList.add('hidden');
+    onAudit(v);
+  });
+}
+
+function wireSamples(root: HTMLElement, onAudit: (raw: string) => void): void {
+  const input = root.querySelector<HTMLInputElement>('#profile-url');
 
   root.querySelectorAll<HTMLElement>('[data-sample]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -419,20 +569,25 @@ export function wireLanding(root: HTMLElement, onAudit: (raw: string) => void): 
       if (c) onAudit(c.url);
     });
   });
+}
 
+function wireWaitlist(root: HTMLElement): void {
   const wl = root.querySelector<HTMLFormElement>('#waitlist-form');
   const wlEmail = root.querySelector<HTMLInputElement>('#waitlist-email');
-  if (wl && wlEmail) {
-    wl.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const v = wlEmail.value.trim();
-      if (!v.includes('@')) {
-        toast('Enter a valid email first (demo — nothing is sent).');
-        wlEmail.focus();
-        return;
-      }
-      toast("You're on the waitlist 🎉 (demo — nothing is sent)");
-      wlEmail.value = '';
-    });
-  }
+  if (!wl || !wlEmail) return;
+
+  wl.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = wlEmail.value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
+      toast('Enter a valid email first.');
+      wlEmail.focus();
+      return;
+    }
+    const saved = addWaitlist(v, 'pro-early-bird');
+    toast(`Saved to this browser (${saved.length} on your list). Nothing is sent — there is no server yet.`);
+    wlEmail.value = '';
+    const counter = root.querySelector<HTMLElement>('[data-waitlist-count]');
+    if (counter) counter.textContent = String(saved.length);
+  });
 }

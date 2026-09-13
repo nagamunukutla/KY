@@ -68,3 +68,67 @@ export function radarSvg(items: { label: string; value: number }[], size = 380):
   ${dots}${labels}
 </svg>`;
 }
+
+export interface TrendPoint {
+  label: string;
+  value: number;
+  /** Short date shown under the axis. */
+  when: string;
+}
+
+/**
+ * Phase 2.5 — score history. Hand-rolled SVG line chart, no dependencies.
+ * Returns an empty-state message when there is not enough history to plot.
+ */
+export function trendSvg(points: TrendPoint[], width = 640, height = 190): string {
+  if (points.length < 2) return '';
+
+  const padL = 38;
+  const padR = 16;
+  const padT = 16;
+  const padB = 34;
+  const w = width - padL - padR;
+  const h = height - padT - padB;
+
+  const values = points.map((p) => clamp(p.value, 0, 100));
+  const lo = Math.max(0, Math.floor((Math.min(...values) - 8) / 10) * 10);
+  const hi = Math.min(100, Math.ceil((Math.max(...values) + 8) / 10) * 10);
+  const span = Math.max(10, hi - lo);
+
+  const x = (i: number): number => padL + (points.length === 1 ? w / 2 : (i * w) / (points.length - 1));
+  const y = (v: number): number => padT + h - ((clamp(v, 0, 100) - lo) / span) * h;
+
+  const gridLines: string[] = [];
+  const step = span / 4;
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + step * i;
+    const gy = y(v);
+    gridLines.push(
+      `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${width - padR}" y2="${gy.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>`,
+      `<text x="${padL - 8}" y="${(gy + 4).toFixed(1)}" text-anchor="end" font-size="10" fill="#94a3b8">${Math.round(v)}</text>`
+    );
+  }
+
+  const coords = points.map((p, i) => [x(i), y(p.value)] as const);
+  const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c[0].toFixed(1)} ${c[1].toFixed(1)}`).join(' ');
+  const area = `${line} L${coords[coords.length - 1][0].toFixed(1)} ${(padT + h).toFixed(1)} L${coords[0][0].toFixed(1)} ${(padT + h).toFixed(1)} Z`;
+
+  const dots = coords
+    .map(
+      (c, i) =>
+        `<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="4" fill="${scoreColor(points[i].value)}" stroke="#fff" stroke-width="2"/>` +
+        `<text x="${c[0].toFixed(1)}" y="${(c[1] - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="${scoreColor(points[i].value)}">${points[i].value}</text>`
+    )
+    .join('');
+
+  const labels = points
+    .map((p, i) => `<text x="${x(i).toFixed(1)}" y="${(height - 12).toFixed(1)}" text-anchor="middle" font-size="10" fill="#94a3b8">${escapeHtml(p.when)}</text>`)
+    .join('');
+
+  return `<svg width="100%" viewBox="0 0 ${width} ${height}" role="img" aria-label="Score history over time">
+  ${gridLines.join('')}
+  <path d="${area}" fill="rgba(10,102,194,0.10)"/>
+  <path d="${line}" fill="none" stroke="#0a66c2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  ${dots}${labels}
+</svg>`;
+}
