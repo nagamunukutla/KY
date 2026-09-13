@@ -8,9 +8,22 @@ This build is designed to be **shared on LinkedIn**: a polished landing page plu
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # type-check + production build (dist/)
+npm run dev      # http://localhost:5173 (serves the app/ source)
+npm run pages    # type-check + build + publish to repo root (GitHub Pages)
 ```
+
+## Deploying (GitHub Pages)
+
+GitHub Pages for this repo is in **branch-deploy** mode and serves the `main` branch root.
+The published site is committed at the repo root (`index.html`, `assets/`, `favicon.svg`):
+
+1. Make changes in `app/`
+2. Run `npm run pages` — rebuilds and copies the site to the repo root
+3. Commit the root `index.html`, `assets/` and `favicon.svg` and push to `main`
+4. Pages rebuilds automatically (~1 minute)
+
+Source layout: the Vite app lives in `app/` (`root: 'app'`, `base: './'` so the site
+works under the `/KY/` sub-path). `dist/` is scratch output — never commit it.
 
 ## What Phase 1 demos
 
@@ -30,21 +43,26 @@ npm run build    # type-check + production build (dist/)
 ## Project structure
 
 ```
-src/
-  app.ts                 # view switching + audit flow
-  analysis.ts            # deterministic analysis engine (curated + estimated)
-  data/
-    sections.ts          # 8 audited sections, weights, issues, fixes
-    industries.ts        # 8 industries: keywords + headline rewrites
-    profiles.ts          # curated sample profiles (Sarah, Michael)
-  components/
-    charts.ts            # SVG score dial + radar chart
-    icons.ts             # inline SVG icon set
-  lib/                   # PRNG, URL parsing, DOM/clipboard helpers
-  views/
-    landing.ts           # marketing page + audit form
-    scanning.ts          # animated analysis steps
-    report.ts            # report view + share/copy/print actions
+index.html, assets/, favicon.svg   # PUBLISHED site (built output, served by GitHub Pages)
+app/                               # Vite source (root: 'app')
+  index.html
+  src/
+    app.ts                 # view switching + audit flow
+    analysis.ts            # deterministic analysis engine (curated + estimated)
+    data/
+      sections.ts          # 8 audited sections, weights, issues, fixes
+      industries.ts        # 8 industries: keywords + headline rewrites
+      profiles.ts          # curated sample profiles (Sarah, Michael)
+    components/
+      charts.ts            # SVG score dial + radar chart
+      icons.ts             # inline SVG icon set
+    lib/                   # PRNG, URL parsing, DOM/clipboard helpers
+    views/
+      landing.ts           # marketing page + audit form
+      scanning.ts          # animated analysis steps
+      report.ts            # report view + share/copy/print actions
+scripts/sync-pages.mjs     # copies dist/ to the repo root
+dist/                      # scratch build output (git-ignored)
 ```
 
 ## Roadmap
