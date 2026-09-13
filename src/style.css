@@ -1,0 +1,134 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand: #0a66c2;
+  --color-brand-dark: #084e91;
+  --color-brand-light: #4d9fe0;
+  --color-ink: #0b1220;
+  --color-ink-soft: #121c31;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: rgba(10, 102, 194, 0.2);
+}
+
+/* ---------- animations ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes growbar {
+  from {
+    width: 0;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.55s cubic-bezier(0.22, 0.8, 0.32, 1) both;
+}
+.animate-pop {
+  animation: pop 0.4s cubic-bezier(0.22, 0.8, 0.32, 1) both;
+}
+.bar-fill {
+  animation: growbar 0.9s cubic-bezier(0.25, 0.8, 0.35, 1) both;
+}
+
+/* ---------- scanning steps ---------- */
+.step-dot {
+  transition: all 0.25s ease;
+}
+[data-state='pending'] .step-dot {
+  background: #e2e8f0;
+}
+[data-state='active'] .step-dot {
+  background: transparent;
+  border: 2.5px solid #cbd5e1;
+  border-top-color: #0a66c2;
+  animation: spin 0.7s linear infinite;
+}
+[data-state='done'] .step-dot {
+  background: #0a66c2;
+}
+[data-state='pending'] .step-label {
+  color: #94a3b8;
+}
+[data-state='active'] .step-label {
+  color: #0f172a;
+  font-weight: 600;
+}
+[data-state='done'] .step-label {
+  color: #475569;
+}
+
+/* ---------- toast ---------- */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: #0b1220;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 60;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.35);
+  max-width: 90vw;
+  text-align: center;
+}
+#toast.toast-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---------- hero glow ---------- */
+.hero-glow {
+  background:
+    radial-gradient(620px 320px at 78% 8%, rgba(10, 102, 194, 0.3), transparent 70%),
+    radial-gradient(520px 280px at 12% 88%, rgba(56, 189, 248, 0.16), transparent 70%);
+}
+
+/* ---------- print ---------- */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  section,
+  .animate-rise,
+  .animate-pop {
+    animation: none !important;
+    break-inside: avoid;
+  }
+}
