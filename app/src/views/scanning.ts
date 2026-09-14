@@ -4,14 +4,27 @@ import { CHECKPOINTS } from '../data/sections';
 import type { AnalysisResult } from '../analysis';
 
 export function scanningHtml(r: AnalysisResult): string {
-  const steps = [
-    'Fetching public profile data',
-    `Running ${CHECKPOINTS}+ checkpoints`,
-    `Benchmarking against ${r.industry} peers`,
-    'Finding missing keywords',
-    'Writing your 3 priority fixes',
-    'Building your report',
-  ];
+  // The steps must describe what actually happens. Real mode never contacts
+  // LinkedIn, so it must not claim to fetch anything.
+  const steps =
+    r.mode === 'text'
+      ? [
+          'Parsing the text you pasted',
+          'Extracting roles, bullets, skills and dates',
+          `Running ${CHECKPOINTS}+ checkpoints`,
+          `Searching for ${r.industry} keywords`,
+          'Writing rewrites for your weakest sections',
+          'Comparing against your previous audits',
+          'Building your report',
+        ]
+      : [
+          'Loading sample profile data',
+          `Running ${CHECKPOINTS}+ checkpoints`,
+          `Benchmarking against ${r.industry} peers`,
+          'Finding missing keywords',
+          'Writing your 3 priority fixes',
+          'Building your report',
+        ];
   return `<div class="grid min-h-screen place-items-center bg-slate-50 px-4">
   <div class="w-full max-w-md animate-pop rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
     <div class="flex items-center gap-3">
